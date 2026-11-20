@@ -22,7 +22,7 @@ const useWide = () => {
 function FilterButton({ active, onClick, count, children }: { active: boolean; onClick: () => void; count: number; children: React.ReactNode }) {
   return (
     <Button variant={active ? 'secondary' : 'ghost'} size="sm" aria-pressed={active} onClick={onClick}
-      className={cn('w-full justify-start gap-2', active && 'font-semibold')}>
+      className={cn('h-8 w-full justify-start gap-2 px-2', active && 'font-semibold')}>
       {children}<span className="ml-auto font-mono text-xs text-muted-foreground">{count}</span>
     </Button>
   )
@@ -107,7 +107,7 @@ export default function App() {
       </div>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 min-[768px]:max-[1099px]:grid-cols-[224px_minmax(0,1fr)] min-[1100px]:grid-cols-[224px_minmax(0,1fr)_400px]">
-        <nav aria-label="Filters" className="hidden overflow-auto border-r p-2 md:block">
+        <nav aria-label="Filters" className="hidden overflow-auto border-r px-2 py-3 md:block">
           <h2 className="mx-2 mt-1 mb-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Status</h2>
           <FilterButton active={status === 'all'} onClick={() => setStatus('all')} count={all.length}>All</FilterButton>
           {(Object.keys(STATUS_LABEL) as Status[]).map((s) => (
@@ -123,19 +123,19 @@ export default function App() {
         <div className="min-h-0 overflow-auto [&_[data-slot=table-container]]:overflow-visible">
           <Table>
             <TableHeader className="sticky top-0 z-10 bg-background max-md:hidden [&_tr]:border-b">
-              <TableRow><TableHead>Story</TableHead><TableHead className="w-32">Category</TableHead><TableHead className="w-14 text-right">Conf</TableHead><TableHead className="w-10"><span className="sr-only">Status</span></TableHead></TableRow>
+              <TableRow><TableHead className="pl-4">Story</TableHead><TableHead className="w-32">Category</TableHead><TableHead className="w-14 text-right">Conf</TableHead><TableHead className="w-12 pr-4"><span className="sr-only">Status</span></TableHead></TableRow>
             </TableHeader>
             <TableBody>
               {rows.map((r) => (
                 <TableRow key={r.id} data-row={r.id} tabIndex={0} data-state={r.id === current?.id ? 'selected' : undefined}
                   onClick={() => setSel(r.id)} onKeyDown={(e) => { if (e.key === 'Enter') setSel(r.id) }}
                   className="h-10 cursor-pointer max-md:relative max-md:flex max-md:h-auto max-md:flex-wrap max-md:items-center max-md:gap-x-3 max-md:py-2.5 max-md:pr-11 max-md:pl-4">
-                  <TableCell className="max-w-0 truncate max-md:max-w-none max-md:basis-full max-md:p-0 max-md:whitespace-normal">
+                  <TableCell className="max-w-0 truncate pl-4 max-md:max-w-none max-md:basis-full max-md:p-0 max-md:whitespace-normal">
                     {r.title}<span className="ml-2 text-xs text-muted-foreground">{host(r.url)}</span>
                   </TableCell>
                   <TableCell className="max-md:p-0"><span className="flex items-center gap-1.5 text-xs text-muted-foreground"><Dot category={r.category} />{r.category}</span></TableCell>
                   <TableCell className={cn('text-right font-mono text-xs max-md:p-0', r.confidence < THRESHOLD ? 'font-semibold text-amber-400' : 'text-muted-foreground')}>{r.confidence.toFixed(2)}</TableCell>
-                  <TableCell className="max-md:absolute max-md:top-3 max-md:right-4 max-md:p-0"><StatusIcon status={r.status} /></TableCell>
+                  <TableCell className="pr-4 text-right max-md:absolute max-md:top-3 max-md:right-4 max-md:p-0"><StatusIcon status={r.status} /></TableCell>
                 </TableRow>
               ))}
             </TableBody>
