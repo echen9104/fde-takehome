@@ -128,3 +128,12 @@
     @apply font-sans;
     }
 }
+/* Tailwind v4 preflight sets buttons to cursor: default; restore the pointer on interactive controls */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="combobox"],
+  [role="option"] {
+    cursor: pointer;
+  }
+}
