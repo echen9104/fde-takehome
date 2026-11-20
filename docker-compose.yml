@@ -10,7 +10,8 @@ services:
   topics:
     image: docker.redpanda.com/redpandadata/redpanda:latest
     depends_on: { redpanda: { condition: service_healthy } }
-    entrypoint: ["rpk", "topic", "create", "hn.enriched", "hn.skipped", "hn.results", "hn.dlq", "-X", "brokers=redpanda:9092"]
+    # create is not idempotent: on re-run fall back to checking the last topic exists
+    entrypoint: ["sh", "-c", "rpk topic create hn.enriched hn.skipped hn.results hn.dlq -X brokers=redpanda:9092 || rpk topic describe hn.dlq -X brokers=redpanda:9092"]
     restart: "no"
 
   connect:

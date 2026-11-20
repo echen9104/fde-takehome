@@ -107,12 +107,12 @@ def process(chat, rec):
 
     # Step 2: category-specific extraction
     fields = EXTRACTORS.get(c["category"], DEFAULT_EXTRACTOR)
-    spec = ", ".join(f'"{n}": ' + (f"one of {a}" if a else "string") for n, a in fields)
+    spec = ", ".join(f'"{n}": ' + (f'"<one of {a}>"' if a else '"<short text>"') for n, a in fields)
     try:
         e = call_json(
             chat,
             f"This story is about {c['category']}.\n{ctx}\n\n"
-            f'Reply with JSON: {{"summary": "one sentence", {spec}}}',
+            f'Reply with JSON containing ALL these keys: {{"summary": "<one sentence>", {spec}}}',
             lambda o: validate_extraction(o, fields),
         )
     except LLMOutputError as err:
