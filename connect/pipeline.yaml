@@ -1,0 +1,69 @@
+# HN newstories -> dedupe -> fetch item -> filter -> project -> enrich with page text -> route
+input:
+  generate:
+    interval: 30s
+    count: 0
+    mapping: root = {}
+  processors:
+    - http:
+        url: https://hacker-news.firebaseio.com/v0/newstories.json
+        verb: GET
+        headers: { User-Agent: fde-takehome/0.1 }
+    - mapping: root = this.slice(0, 25)
+    - unarchive: { format: json_array }
+    - mapping: 'root = {"id": this}'
+    - dedupe:
+        cache: seen
+        key: ${! json("id") }
+        drop_on_err: false
+    - http:
+        url: https://hacker-news.firebaseio.com/v0/item/${! json("id") }.json
+        verb: GET
+        headers: { User-Agent: fde-takehome/0.1 }
+    # filter: only live stories; project: keep the fields we use (time -> ISO 8601 for TIMESTAMPTZ)
+    - mapping: |
+        root = if this == null || this.type != "story" || this.dead.or(false) || this.deleted.or(false) { deleted() } else {
+          {
+            "id": this.id,
+            "title": this.title,
+            "url": this.url.or(""),
+            "by": this.by,
+            "score": this.score,
+            "time": this.time.ts_format("2006-01-02T15:04:05Z", "UTC")
+          }
+        }
+    # enrich: fetch the linked page (only for stories with a url); on failure the record
+    # continues without content and the service falls back to the title.
+    - branch:
+        request_map: |
+          root = if this.url == "" { deleted() } else { this }
+        processors:
+          - http:
+              url: ${! json("url") }
+              verb: GET
+              headers: { User-Agent: "Mozilla/5.0 fde-takehome/0.1" }
+              timeout: 8s
+              retries: 1
+          - mapping: |
+              root = content().string().re_replace_all("(?s)<script.*?</script>", " ").re_replace_all("(?s)<style.*?</style>", " ").re_replace_all("<[^>]+>", " ").re_replace_all("\\s+", " ")
+        result_map: root.content = content().string().slice(0, 4000)
+    - catch:
+        - log: { level: WARN, message: "enrich failed: ${! error() }" }
+        - mapping: root = this
+output:
+  switch:
+    cases:
+      - check: this.url != ""
+        output:
+          kafka_franz:
+            seed_brokers: [redpanda:9092]
+            topic: hn.enriched
+            key: ${! json("id") }
+      - output:
+          kafka_franz:
+            seed_brokers: [redpanda:9092]
+            topic: hn.skipped
+            key: ${! json("id") }
+cache_resources:
+  - label: seen
+    memory: { default_ttl: 24h }

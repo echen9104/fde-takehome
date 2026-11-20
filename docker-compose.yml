@@ -1,0 +1,66 @@
+services:
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:latest
+    command: redpanda start --mode=dev-container --smp=1 --memory=1G --kafka-addr=0.0.0.0:9092 --advertise-kafka-addr=redpanda:9092
+    healthcheck:
+      test: ["CMD", "rpk", "cluster", "health", "--exit-when-healthy"]
+      interval: 5s
+      retries: 20
+
+  topics:
+    image: docker.redpanda.com/redpandadata/redpanda:latest
+    depends_on: { redpanda: { condition: service_healthy } }
+    entrypoint: ["rpk", "topic", "create", "hn.enriched", "hn.skipped", "hn.results", "hn.dlq", "-X", "brokers=redpanda:9092"]
+    restart: "no"
+
+  connect:
+    image: docker.redpanda.com/redpandadata/connect:latest
+    depends_on: { topics: { condition: service_completed_successfully } }
+    command: run /pipeline.yaml
+    volumes: ["./connect/pipeline.yaml:/pipeline.yaml:ro"]
+
+  ollama:
+    image: ollama/ollama:latest
+    volumes: ["ollama:/root/.ollama"]
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      retries: 20
+
+  model-pull:
+    image: ollama/ollama:latest
+    depends_on: { ollama: { condition: service_healthy } }
+    environment: { OLLAMA_HOST: "http://ollama:11434" }
+    entrypoint: ["ollama", "pull", "${LLM_MODEL:-qwen2.5:1.5b}"]
+    restart: "no"
+
+  postgres:
+    image: postgres:16
+    environment: { POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: app }
+    volumes: ["./db/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro"]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "app"]
+      interval: 3s
+      retries: 20
+
+  service:
+    build: ./service
+    depends_on:
+      topics: { condition: service_completed_successfully }
+      postgres: { condition: service_healthy }
+      model-pull: { condition: service_completed_successfully }
+    environment:
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://ollama:11434/v1}
+      LLM_MODEL: ${LLM_MODEL:-qwen2.5:1.5b}
+      LLM_API_KEY: ${LLM_API_KEY:-ollama}
+    ports: ["8000:8000"]
+
+  seed:  # optional: docker compose --profile seed run --rm seed
+    profiles: ["seed"]
+    image: docker.redpanda.com/redpandadata/redpanda:latest
+    depends_on: { topics: { condition: service_completed_successfully } }
+    volumes: ["./seed/stories.jsonl:/stories.jsonl:ro"]
+    entrypoint: ["sh", "-c", "rpk topic produce hn.enriched -f '%v\\n' -X brokers=redpanda:9092 < /stories.jsonl"]
+
+volumes:
+  ollama:
