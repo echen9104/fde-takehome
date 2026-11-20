@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HN triage</title>
+<style>
+:root {
+  --bg: #0f172a; --card: #1b2336; --muted: #272f42; --border: #3b4760;
+  --fg: #f8fafc; --fg2: #a7b4c8; --accent: #22c55e; --warn: #fbbf24; --bad: #f87171;
+  --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 var(--sans); }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+main { max-width: 1200px; margin: 0 auto; padding: 16px; }
+header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+h1 { font: 600 18px var(--mono); margin: 0; }
+#updated { color: var(--fg2); font: 12px var(--mono); }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin: 16px 0 8px; }
+.tile { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px;
+  text-align: left; color: inherit; font: inherit; cursor: pointer; min-height: 44px; transition: border-color .15s; }
+.tile:hover { border-color: var(--fg2); }
+.tile[aria-pressed="true"] { border-color: var(--accent); }
+.tile b { display: block; font: 600 22px var(--mono); }
+.tile span { color: var(--fg2); font-size: 12px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.chip { background: none; border: 1px solid var(--border); color: var(--fg2); border-radius: 999px;
+  padding: 6px 12px; font: 12px var(--mono); cursor: pointer; min-height: 32px; transition: background .15s; }
+.chip:hover { background: var(--muted); }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #0f172a; font-weight: 600; }
+
+table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+th { text-align: left; font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--fg2); padding: 8px 12px; background: var(--muted); }
+td { padding: 8px 12px; border-top: 1px solid var(--border); vertical-align: top; }
+tbody tr:hover { background: #20293f; }
+.title { font-weight: 500; text-decoration: none; }
+.title:hover { text-decoration: underline; }
+.host { display: block; color: var(--fg2); font: 11px var(--mono); }
+.sum { color: var(--fg2); }
+.cat { font: 12px var(--mono); }
+
+.badge { font: 600 11px var(--mono); padding: 2px 8px; border-radius: 4px; border: 1px solid; white-space: nowrap; }
+.ok { color: var(--accent); border-color: var(--accent); }
+.needs_review { color: var(--warn); border-color: var(--warn); }
+.fallback { color: var(--bad); border-color: var(--bad); }
+
+.conf { display: flex; align-items: center; gap: 6px; font: 12px var(--mono); min-width: 90px; }
+.bar { flex: 1; height: 6px; background: var(--muted); border-radius: 3px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--fg2); }
+
+.kv { display: inline-block; margin: 0 4px 4px 0; padding: 1px 6px; background: var(--muted); border-radius: 4px; font: 11px var(--mono); color: var(--fg2); }
+.kv b { color: var(--fg); font-weight: 500; }
+.empty { padding: 32px; text-align: center; color: var(--fg2); }
+
+@media (max-width: 760px) {
+  thead { display: none; }
+  table, tbody, tr, td { display: block; }
+  tr { border-top: 1px solid var(--border); padding: 8px 0; }
+  td { border: 0; padding: 2px 12px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>HN triage</h1>
+    <span id="updated" role="status">loading…</span>
+  </header>
+  <div class="tiles" id="tiles"></div>
+  <div class="chips" id="chips" aria-label="Filter by category"></div>
+  <table>
+    <thead><tr><th>Story<th>Category<th>Confidence<th>Status<th>Summary &amp; extracted</tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <div class="empty" id="empty" hidden>No stories match this filter.</div>
+</main>
+<script>
+const state = { status: "all", category: "all", data: [] };
+const $ = (id) => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const STATUSES = [["all", "All"], ["ok", "OK"], ["needs_review", "Needs review"], ["fallback", "Fallback"]];
+
+function host(u) { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; } }
+
+function pressButton(btn, on) { btn.setAttribute("aria-pressed", on); return btn; }
+
+function render() {
+  const d = state.data;
+  const tiles = $("tiles"); tiles.replaceChildren();
+  for (const [key, label] of STATUSES) {
+    const n = key === "all" ? d.length : d.filter((r) => r.status === key).length;
+    const b = pressButton(el("button", "tile"), state.status === key);
+    b.append(el("b", null, n), el("span", null, label));
+    b.onclick = () => { state.status = key; render(); };
+    tiles.append(b);
+  }
+  const chips = $("chips"); chips.replaceChildren();
+  for (const c of ["all", ...[...new Set(d.map((r) => r.category))].sort()]) {
+    const b = pressButton(el("button", "chip", c), state.category === c);
+    b.onclick = () => { state.category = c; render(); };
+    chips.append(b);
+  }
+  const rows = d.filter((r) => (state.status === "all" || r.status === state.status) && (state.category === "all" || r.category === state.category));
+  const tbody = $("rows"); tbody.replaceChildren();
+  for (const r of rows) {
+    const tr = el("tr");
+    const story = el("td"); const a = el("a", "title", r.title); a.href = r.url; a.target = "_blank"; a.rel = "noopener noreferrer";
+    story.append(a, el("span", "host", host(r.url)));
+    const conf = el("td"); const w = el("div", "conf"); const bar = el("div", "bar"); const fill = el("i"); fill.style.width = Math.round(r.confidence * 100) + "%";
+    bar.append(fill); w.append(bar, el("span", null, r.confidence.toFixed(2))); conf.append(w);
+    const sum = el("td"); sum.append(el("div", "sum", r.summary || "—"));
+    for (const [k, v] of Object.entries(r.extra || {})) { const kv = el("span", "kv", k + ": "); kv.append(el("b", null, v)); sum.append(kv); }
+    tr.append(story, el("td", "cat", r.category), conf, (() => { const t = el("td"); t.append(el("span", "badge " + r.status, r.status.replace("_", " "))); return t; })(), sum);
+    tbody.append(tr);
+  }
+  $("empty").hidden = rows.length > 0;
+}
+
+async function load() {
+  try {
+    state.data = await (await fetch("/results?limit=200")).json();
+    $("updated").textContent = "updated " + new Date().toLocaleTimeString();
+    render();
+  } catch { $("updated").textContent = "offline, retrying…"; }
+}
+load(); setInterval(load, 15000);
+</script>
+</body>
+</html>

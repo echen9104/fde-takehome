@@ -8,7 +8,7 @@ import httpx
 import psycopg
 from confluent_kafka import Consumer, Producer
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse
 from psycopg.types.json import Jsonb
 
 import llm
@@ -95,13 +95,6 @@ def results(status: str | None = None, limit: int = 100):
         return cur.fetchall()
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
 def page():
-    rows = results()
-    from html import escape as e
-    tr = "".join(
-        f"<tr><td><a href='{e(r['url'])}'>{e(r['title'])}</a></td><td>{r['category']}</td>"
-        f"<td>{r['confidence']:.2f}</td><td>{r['status']}</td><td>{e(r['summary'] or '')}</td>"
-        f"<td>{e(json.dumps(r['extra']))}</td></tr>" for r in rows)
-    return (f"<meta http-equiv=refresh content=15><h1>HN triage</h1><table border=1 cellpadding=4>"
-            f"<tr><th>story<th>category<th>conf<th>status<th>summary<th>extracted</tr>{tr}</table>")
+    return FileResponse("index.html")
