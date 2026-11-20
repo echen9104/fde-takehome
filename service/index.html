@@ -6,129 +6,217 @@
 <title>HN triage</title>
 <style>
 :root {
-  --bg: #0f172a; --card: #1b2336; --muted: #272f42; --border: #3b4760;
-  --fg: #f8fafc; --fg2: #a7b4c8; --accent: #22c55e; --warn: #fbbf24; --bad: #f87171;
-  --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --bg: #0f172a; --panel: #131c31; --card: #1b2336; --hover: #1f2a42; --border: #2b374f;
+  --fg: #f1f5f9; --fg2: #9aa9c0; --accent: #22c55e; --warn: #fbbf24; --bad: #f87171;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  --row: 40px;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 var(--sans); }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 var(--sans); display: flex; flex-direction: column; }
 a { color: inherit; }
-:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
-main { max-width: 1200px; margin: 0 auto; padding: 16px; }
-header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-h1 { font: 600 18px var(--mono); margin: 0; }
-#updated { color: var(--fg2); font: 12px var(--mono); }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid #93c5fd; outline-offset: -2px; border-radius: 4px; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 
-.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin: 16px 0 8px; }
-.tile { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px;
-  text-align: left; color: inherit; font: inherit; cursor: pointer; min-height: 44px; transition: border-color .15s; }
-.tile:hover { border-color: var(--fg2); }
-.tile[aria-pressed="true"] { border-color: var(--accent); }
-.tile b { display: block; font: 600 22px var(--mono); }
-.tile span { color: var(--fg2); font-size: 12px; }
+/* top bar */
+.top { display: flex; align-items: center; gap: 16px; height: 52px; padding: 0 16px; border-bottom: 1px solid var(--border); flex: none; }
+.top h1 { font-size: 15px; font-weight: 650; margin: 0; letter-spacing: .01em; }
+.top .sp { flex: 1; }
+.top input, .top select { background: var(--card); border: 1px solid var(--border); border-radius: 6px; height: 32px; padding: 0 10px; }
+.top input { width: 260px; }
+.top input::placeholder { color: var(--fg2); }
+#updated { color: var(--fg2); font-size: 12px; white-space: nowrap; }
 
-.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
-.chip { background: none; border: 1px solid var(--border); color: var(--fg2); border-radius: 999px;
-  padding: 6px 12px; font: 12px var(--mono); cursor: pointer; min-height: 32px; transition: background .15s; }
-.chip:hover { background: var(--muted); }
-.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #0f172a; font-weight: 600; }
+/* layout */
+.app { flex: 1; min-height: 0; display: grid; grid-template-columns: 224px minmax(0, 1fr) 400px; }
+.app > * { min-height: 0; overflow: auto; }
 
-table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-th { text-align: left; font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--fg2); padding: 8px 12px; background: var(--muted); }
-td { padding: 8px 12px; border-top: 1px solid var(--border); vertical-align: top; }
-tbody tr:hover { background: #20293f; }
-.title { font-weight: 500; text-decoration: none; }
-.title:hover { text-decoration: underline; }
-.host { display: block; color: var(--fg2); font: 11px var(--mono); }
-.sum { color: var(--fg2); }
-.cat { font: 12px var(--mono); }
+/* sidebar */
+.side { border-right: 1px solid var(--border); padding: 12px 8px; background: var(--panel); }
+.side h2 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--fg2); margin: 12px 8px 4px; }
+.side h2:first-child { margin-top: 0; }
+.f { display: flex; align-items: center; gap: 8px; width: 100%; height: 32px; padding: 0 8px; background: none; border: 0; border-radius: 6px; text-align: left; transition: background .12s; }
+.f:hover { background: var(--hover); }
+.f[aria-pressed="true"] { background: var(--card); box-shadow: inset 2px 0 0 var(--accent); font-weight: 600; }
+.f .n { margin-left: auto; color: var(--fg2); font-size: 12px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
 
-.badge { font: 600 11px var(--mono); padding: 2px 8px; border-radius: 4px; border: 1px solid; white-space: nowrap; }
-.ok { color: var(--accent); border-color: var(--accent); }
-.needs_review { color: var(--warn); border-color: var(--warn); }
-.fallback { color: var(--bad); border-color: var(--bad); }
+/* list */
+.list { list-style: none; margin: 0; padding: 0; }
+.cols, .row { display: grid; grid-template-columns: minmax(0, 1fr) 120px 48px 28px; align-items: center; gap: 12px; padding: 0 16px; }
+.cols { position: sticky; top: 0; z-index: 1; height: 32px; background: var(--bg); border-bottom: 1px solid var(--border);
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--fg2); font-weight: 600; }
+.row { width: 100%; height: var(--row); background: none; border: 0; border-bottom: 1px solid var(--border); text-align: left; transition: background .12s; }
+.row:hover { background: var(--hover); }
+.row[aria-selected="true"] { background: var(--card); box-shadow: inset 2px 0 0 var(--accent); }
+.t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.t small { color: var(--fg2); margin-left: 8px; font-size: 12px; }
+.cat { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--fg2); overflow: hidden; white-space: nowrap; }
+.cf { text-align: right; font-size: 12px; color: var(--fg2); }
+.cf.low { color: var(--warn); font-weight: 600; }
+.st { display: flex; justify-content: center; }
+.st svg { width: 16px; height: 16px; }
+.ok { color: var(--accent); } .needs_review { color: var(--warn); } .fallback { color: var(--bad); }
+.state { padding: 48px 16px; text-align: center; color: var(--fg2); }
 
-.conf { display: flex; align-items: center; gap: 6px; font: 12px var(--mono); min-width: 90px; }
-.bar { flex: 1; height: 6px; background: var(--muted); border-radius: 3px; overflow: hidden; }
-.bar i { display: block; height: 100%; background: var(--fg2); }
+/* detail */
+.detail { border-left: 1px solid var(--border); padding: 20px; background: var(--panel); }
+.detail h2 { font-size: 18px; line-height: 1.3; margin: 0 0 4px; }
+.detail h2 a { text-decoration: none; }
+.detail h2 a:hover { text-decoration: underline; }
+.detail .host { color: var(--fg2); font-size: 12px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border: 1px solid var(--border); border-radius: 999px; font-size: 12px; }
+.pill svg { width: 14px; height: 14px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.detail h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--fg2); margin: 20px 0 6px; font-weight: 600; }
+.detail p { margin: 0; }
+.meter { height: 6px; background: var(--card); border-radius: 3px; position: relative; margin-top: 8px; }
+.meter i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: var(--accent); }
+.meter u { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--fg2); }
+.detail small { color: var(--fg2); }
+dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; }
+dt { color: var(--fg2); } dd { margin: 0; overflow-wrap: anywhere; }
+.none { color: var(--fg2); }
+.close { display: none; }
 
-.kv { display: inline-block; margin: 0 4px 4px 0; padding: 1px 6px; background: var(--muted); border-radius: 4px; font: 11px var(--mono); color: var(--fg2); }
-.kv b { color: var(--fg); font-weight: 500; }
-.empty { padding: 32px; text-align: center; color: var(--fg2); }
-
-@media (max-width: 760px) {
-  thead { display: none; }
-  table, tbody, tr, td { display: block; }
-  tr { border-top: 1px solid var(--border); padding: 8px 0; }
-  td { border: 0; padding: 2px 12px; }
+@media (max-width: 1100px) { .app { grid-template-columns: 200px minmax(0, 1fr); } .detail { position: fixed; inset: auto 0 0 0; max-height: 60vh; border-top: 1px solid var(--border); box-shadow: 0 -8px 24px #0008; }
+  .detail[hidden] { display: none; } .close { display: block; position: absolute; top: 8px; right: 8px; min-height: 44px; min-width: 44px; background: none; border: 0; font-size: 18px; } }
+@media (max-width: 720px) {
+  .top { flex-wrap: wrap; height: auto; padding: 8px 12px; gap: 8px; } .top input { flex: 1; width: auto; } #updated { display: none; }
+  .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .side { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px; border-right: 0; border-bottom: 1px solid var(--border); max-height: 40vh; }
+  .side h2 { display: none; } .f { width: auto; border: 1px solid var(--border); border-radius: 999px; height: 36px; }
+  .cols { display: none; }
+  .row { grid-template-columns: minmax(0, 1fr) 28px; height: 56px; row-gap: 0; } .row .cat { grid-column: 1; grid-row: 2; } .row .t { grid-row: 1; } .row .cf { display: none; } .row .st { grid-row: 1 / span 2; grid-column: 2; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
 <body>
-<main>
-  <header>
-    <h1>HN triage</h1>
-    <span id="updated" role="status">loading…</span>
-  </header>
-  <div class="tiles" id="tiles"></div>
-  <div class="chips" id="chips" aria-label="Filter by category"></div>
-  <table>
-    <thead><tr><th>Story<th>Category<th>Confidence<th>Status<th>Summary &amp; extracted</tr></thead>
-    <tbody id="rows"></tbody>
-  </table>
-  <div class="empty" id="empty" hidden>No stories match this filter.</div>
-</main>
+<header class="top">
+  <h1>HN triage</h1>
+  <span class="sp"></span>
+  <input id="q" type="search" placeholder="Search stories…" aria-label="Search stories">
+  <select id="sort" aria-label="Sort">
+    <option value="new">Newest</option>
+    <option value="low">Lowest confidence</option>
+  </select>
+  <span id="updated" role="status">loading…</span>
+</header>
+<div class="app">
+  <nav class="side" id="side" aria-label="Filters"></nav>
+  <main>
+    <div class="cols" aria-hidden="true"><span>Story</span><span>Category</span><span style="text-align:right">Conf</span><span></span></div>
+    <ul class="list" id="list"></ul>
+    <div class="state" id="state">Loading…</div>
+  </main>
+  <aside class="detail" id="detail" aria-live="polite" hidden></aside>
+</div>
 <script>
-const state = { status: "all", category: "all", data: [] };
+const COLORS = { security: "#f87171", ai_ml: "#a78bfa", programming: "#60a5fa", business: "#fbbf24", science: "#2dd4bf", other: "#94a3b8" };
+const LABEL = { ok: "OK", needs_review: "Needs review", fallback: "Fallback" };
+const ICON = {
+  ok: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>',
+  needs_review: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/></svg>',
+  fallback: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></svg>',
+};
+const THRESHOLD = 0.6;
+const S = { status: "all", category: "all", q: "", sort: "new", sel: null, data: [] };
 const $ = (id) => document.getElementById(id);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
-const STATUSES = [["all", "All"], ["ok", "OK"], ["needs_review", "Needs review"], ["fallback", "Fallback"]];
+const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; } };
+const icon = (status) => { const s = el("span", "st " + status); s.innerHTML = ICON[status]; s.title = LABEL[status]; s.setAttribute("role", "img"); s.setAttribute("aria-label", LABEL[status]); return s; };
+const dot = (c) => { const d = el("span", "dot"); d.style.background = COLORS[c] || COLORS.other; return d; };
 
-function host(u) { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; } }
+function visible() {
+  const q = S.q.toLowerCase();
+  const rows = S.data.filter((r) =>
+    (S.status === "all" || r.status === S.status) && (S.category === "all" || r.category === S.category) &&
+    (!q || (r.title + " " + (r.summary || "")).toLowerCase().includes(q)));
+  if (S.sort === "low") rows.sort((a, b) => a.confidence - b.confidence);
+  return rows; // API already returns newest first
+}
 
-function pressButton(btn, on) { btn.setAttribute("aria-pressed", on); return btn; }
+function filterBtn(label, key, group, n, color) {
+  const b = el("button", "f"); b.setAttribute("aria-pressed", S[group] === key);
+  if (color !== undefined) b.append(dot(color));
+  b.append(el("span", null, label), el("span", "n num", n));
+  b.onclick = () => { S[group] = key; render(); };
+  return b;
+}
+
+function renderSide() {
+  const d = S.data, side = $("side"); side.replaceChildren();
+  side.append(el("h2", null, "Status"), filterBtn("All", "all", "status", d.length));
+  for (const k of Object.keys(LABEL)) side.append(filterBtn(LABEL[k], k, "status", d.filter((r) => r.status === k).length));
+  side.append(el("h2", null, "Category"), filterBtn("All", "all", "category", d.length));
+  for (const c of [...new Set(d.map((r) => r.category))].sort()) side.append(filterBtn(c, c, "category", d.filter((r) => r.category === c).length, c));
+}
+
+function renderList(rows) {
+  const ul = $("list"); ul.replaceChildren();
+  for (const r of rows) {
+    const li = el("li"); const b = el("button", "row"); b.setAttribute("aria-selected", r.id === S.sel); b.dataset.id = r.id;
+    const t = el("span", "t", r.title); t.append(el("small", null, host(r.url)));
+    const cat = el("span", "cat"); cat.append(dot(r.category), r.category);
+    b.append(t, cat, el("span", "cf num" + (r.confidence < THRESHOLD ? " low" : ""), r.confidence.toFixed(2)), icon(r.status));
+    b.onclick = () => { S.sel = r.id; render(); };
+    li.append(b); ul.append(li);
+  }
+  $("state").hidden = rows.length > 0;
+  $("state").textContent = S.data.length ? "No stories match these filters." : "No results yet. The first ones appear after the model finishes loading.";
+}
+
+function renderDetail(rows) {
+  const d = $("detail"), r = S.data.find((x) => x.id === S.sel);
+  if (!r) { d.hidden = true; return; }
+  d.hidden = false; d.replaceChildren();
+  const close = el("button", "close", "×"); close.setAttribute("aria-label", "Close details"); close.onclick = () => { S.sel = null; render(); };
+  const h = el("h2"); const a = el("a", null, r.title); a.href = r.url; a.target = "_blank"; a.rel = "noopener noreferrer"; h.append(a);
+  const meta = el("div", "meta");
+  const p1 = el("span", "pill"); p1.append(dot(r.category), r.category);
+  const p2 = el("span", "pill " + r.status); p2.innerHTML = ICON[r.status]; p2.append(LABEL[r.status]);
+  meta.append(p1, p2);
+  const conf = el("div"); conf.append(el("span", "num", r.confidence.toFixed(2)));
+  const m = el("div", "meter"); const i = el("i"); i.style.width = r.confidence * 100 + "%"; const u = el("u"); u.style.left = THRESHOLD * 100 + "%"; m.append(i, u);
+  const note = el("small", null, r.confidence < THRESHOLD ? "Below the 0.60 threshold: extraction was skipped." : "Marker shows the 0.60 review threshold.");
+  conf.append(m, note);
+  d.append(close, h, el("div", "host", host(r.url)), meta, el("h3", null, "Summary"), el("p", r.summary ? "" : "none", r.summary || "No summary generated."), el("h3", null, "Confidence"), conf, el("h3", null, "Extracted"));
+  const entries = Object.entries(r.extra || {});
+  if (!entries.length) d.append(el("p", "none", "Nothing extracted."));
+  else { const dl = el("dl"); for (const [k, v] of entries) dl.append(el("dt", null, k.replace(/_/g, " ")), el("dd", null, v)); d.append(dl); }
+}
 
 function render() {
-  const d = state.data;
-  const tiles = $("tiles"); tiles.replaceChildren();
-  for (const [key, label] of STATUSES) {
-    const n = key === "all" ? d.length : d.filter((r) => r.status === key).length;
-    const b = pressButton(el("button", "tile"), state.status === key);
-    b.append(el("b", null, n), el("span", null, label));
-    b.onclick = () => { state.status = key; render(); };
-    tiles.append(b);
-  }
-  const chips = $("chips"); chips.replaceChildren();
-  for (const c of ["all", ...[...new Set(d.map((r) => r.category))].sort()]) {
-    const b = pressButton(el("button", "chip", c), state.category === c);
-    b.onclick = () => { state.category = c; render(); };
-    chips.append(b);
-  }
-  const rows = d.filter((r) => (state.status === "all" || r.status === state.status) && (state.category === "all" || r.category === state.category));
-  const tbody = $("rows"); tbody.replaceChildren();
-  for (const r of rows) {
-    const tr = el("tr");
-    const story = el("td"); const a = el("a", "title", r.title); a.href = r.url; a.target = "_blank"; a.rel = "noopener noreferrer";
-    story.append(a, el("span", "host", host(r.url)));
-    const conf = el("td"); const w = el("div", "conf"); const bar = el("div", "bar"); const fill = el("i"); fill.style.width = Math.round(r.confidence * 100) + "%";
-    bar.append(fill); w.append(bar, el("span", null, r.confidence.toFixed(2))); conf.append(w);
-    const sum = el("td"); sum.append(el("div", "sum", r.summary || "—"));
-    for (const [k, v] of Object.entries(r.extra || {})) { const kv = el("span", "kv", k + ": "); kv.append(el("b", null, v)); sum.append(kv); }
-    tr.append(story, el("td", "cat", r.category), conf, (() => { const t = el("td"); t.append(el("span", "badge " + r.status, r.status.replace("_", " "))); return t; })(), sum);
-    tbody.append(tr);
-  }
-  $("empty").hidden = rows.length > 0;
+  const rows = visible();
+  // keep the detail pane in step with the list: wide screens auto-pick the first row, narrow ones show nothing
+  if (!rows.some((r) => r.id === S.sel)) S.sel = (window.innerWidth > 1100 ? rows[0]?.id : null) ?? null;
+  renderSide(); renderList(rows); renderDetail(rows);
 }
 
 async function load() {
   try {
-    state.data = await (await fetch("/results?limit=200")).json();
+    S.data = await (await fetch("/results?limit=200")).json();
     $("updated").textContent = "updated " + new Date().toLocaleTimeString();
+    if (S.sel === null && window.innerWidth > 1100 && S.data.length) S.sel = visible()[0]?.id ?? null;
     render();
   } catch { $("updated").textContent = "offline, retrying…"; }
 }
+
+$("q").oninput = (e) => { S.q = e.target.value; render(); };
+$("sort").onchange = (e) => { S.sort = e.target.value; render(); };
+document.addEventListener("keydown", (e) => {
+  if (!["ArrowDown", "ArrowUp"].includes(e.key) || e.target.matches("input,select")) return;
+  const rows = visible(); if (!rows.length) return;
+  const i = rows.findIndex((r) => r.id === S.sel);
+  S.sel = rows[Math.min(rows.length - 1, Math.max(0, i + (e.key === "ArrowDown" ? 1 : -1)))].id;
+  e.preventDefault(); render();
+  document.querySelector('.row[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
+  document.querySelector('.row[aria-selected="true"]')?.focus();
+});
 load(); setInterval(load, 15000);
 </script>
 </body>
