@@ -14,6 +14,7 @@ docker compose up --build
 - JSON: http://localhost:8000/results?status=needs_review&limit=50
 - Optional offline seed data (4 stories, no internet needed for the LLM step): `docker compose --profile seed run --rm seed`
 - Hosted model: copy `.env.example` to `.env` and set `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY` (any OpenAI-compatible endpoint).
+- UI dev with hot reload (needs Node 20+): `cd frontend && npm install && npm run dev` (proxies `/results` to :8000)
 - Tests: `cd service && pip install pytest && pytest`
 
 ## Layout
@@ -22,7 +23,8 @@ docker compose up --build
 |---|---|
 | `connect/pipeline.yaml` | all Connect logic |
 | `service/llm.py` | parsing, validation, retries, routing, confidence branch (pure, unit-tested) |
-| `service/app.py` | Kafka worker + FastAPI |
+| `service/app.py` | Kafka worker + FastAPI (serves the built UI at `/`) |
+| `frontend/` | React + Tailwind + shadcn/ui triage page; built inside the service image, no local Node needed |
 | `db/schema.sql` | Postgres schema |
 | `seed/stories.jsonl` | sample enriched records |
 

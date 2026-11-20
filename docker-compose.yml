@@ -45,7 +45,7 @@ services:
       retries: 20
 
   service:
-    build: ./service
+    build: { context: ., dockerfile: service/Dockerfile }
     depends_on:
       topics: { condition: service_completed_successfully }
       postgres: { condition: service_healthy }

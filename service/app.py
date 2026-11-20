@@ -8,7 +8,7 @@ import httpx
 import psycopg
 from confluent_kafka import Consumer, Producer
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from psycopg.types.json import Jsonb
 
 import llm
@@ -95,6 +95,5 @@ def results(status: str | None = None, limit: int = 100):
         return cur.fetchall()
 
 
-@app.get("/")
-def page():
-    return FileResponse("index.html")
+# Built React app (see service/Dockerfile). Mounted last so /results wins.
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
