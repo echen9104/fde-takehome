@@ -3,27 +3,18 @@ export const DIAGRAMS = [
   {
     title: 'System flow',
     note: 'How data moves from Hacker News to the browser. Connect prepares it, the Python worker adds the AI result.',
-    code: `flowchart LR
+    code: `flowchart TD
     HN[(Hacker News API)] -->|"newstories + item, every 30s"| C
     PAGE[(Linked web page)] -->|"enrich: fetch text"| C
-    subgraph Redpanda
-        E[[hn.enriched]]
-        S[[hn.skipped]]
-        R[[hn.results]]
-        D[[hn.dlq]]
-    end
-    C["Redpanda Connect<br/>dedupe, filter, project,<br/>enrich, route"] -->|has URL| E
-    C -->|no URL| S
-    E --> W
-    subgraph Service["Python service"]
-        W["Kafka worker<br/>llm.py: classify, retry,<br/>confidence gate, extract"]
-        API["FastAPI<br/>GET /results + serves UI"]
-    end
+    C["Redpanda Connect<br/>dedupe, filter, project,<br/>enrich, route"]
+    C -->|has URL| E[[topic hn.enriched]]
+    C -->|no URL| S[[topic hn.skipped]]
+    E --> W["Python worker (llm.py)<br/>classify, retry,<br/>confidence gate, extract"]
     W <-->|"chat completions"| O{{"Ollama<br/>or hosted LLM"}}
     W -->|upsert| PG[(Postgres results)]
-    W --> R
-    W -->|unparseable message| D
-    PG --> API
+    W --> R[[topic hn.results]]
+    W -->|unparseable message| D[[topic hn.dlq]]
+    PG --> API["FastAPI<br/>GET /results + serves UI"]
     API --> UI["Browser: React triage page"]`,
   },
   {
@@ -47,7 +38,7 @@ export const DIAGRAMS = [
   {
     title: 'Frontend components',
     note: 'How the pieces in frontend/src fit together. App.tsx owns the state.',
-    code: `flowchart TD
+    code: `flowchart LR
     APP["App.tsx<br/>holds filter + selection state"]
     APP --> H1[useResults<br/>polls /results every 15s]
     APP --> H2[useWide<br/>screen width]
