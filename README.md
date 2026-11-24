@@ -11,6 +11,7 @@ docker compose up --build
 ```
 
 - Page: http://localhost:8000/  (auto-refreshes; first results appear after the model downloads, about a minute or two)
+- Diagrams (same as below, rendered in the app): http://localhost:8000/#diagrams
 - JSON: http://localhost:8000/results?status=needs_review&limit=50
 - Optional offline seed data (4 stories, no internet needed for the LLM step): `docker compose --profile seed run --rm seed`
 - Hosted model: copy `.env.example` to `.env` and set `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY` (any OpenAI-compatible endpoint).

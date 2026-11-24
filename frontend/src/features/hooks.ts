@@ -47,3 +47,14 @@ export function useArrowKeys(rows: Result[], currentId: number | undefined, sele
     return () => document.removeEventListener('keydown', onKey)
   }, [rows, currentId, select])
 }
+
+/** Tiny router: true while the URL hash is #diagrams. */
+export function useDiagramsPage() {
+  const [on, setOn] = useState(() => location.hash === '#diagrams')
+  useEffect(() => {
+    const f = () => setOn(location.hash === '#diagrams')
+    window.addEventListener('hashchange', f)
+    return () => window.removeEventListener('hashchange', f)
+  }, [])
+  return on
+}

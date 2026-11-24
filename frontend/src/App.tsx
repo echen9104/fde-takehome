@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import { DetailPanel } from './features/DetailPanel'
 import { applyFilters, type Sort } from './features/filters'
 import { Header } from './features/Header'
-import { useArrowKeys, useResults, useWide } from './features/hooks'
+import { DiagramsPage } from './features/DiagramsPage'
+import { useArrowKeys, useDiagramsPage, useResults, useWide } from './features/hooks'
 import { MobileFilters } from './features/MobileFilters'
 import { ResultsTable } from './features/ResultsTable'
 import { Sidebar } from './features/Sidebar'
@@ -10,6 +11,7 @@ import type { Status } from './features/types'
 
 /** Owns the state (filters, selection) and lays the pieces out. Each piece lives in features/. */
 export default function App() {
+  const diagrams = useDiagramsPage()
   const { data, updated } = useResults()
   const wide = useWide()
   const [status, setStatus] = useState<Status | 'all'>('all')
@@ -28,6 +30,8 @@ export default function App() {
 
   const emptyText = data === null ? 'Loading…' : all.length ? 'No stories match these filters.' : 'No results yet. The first ones appear after the model finishes loading.'
   const filters = { all, cats, status, onStatus: setStatus, category, onCategory: setCategory }
+
+  if (diagrams) return <DiagramsPage />
 
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">

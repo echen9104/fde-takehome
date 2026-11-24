@@ -9,6 +9,7 @@ export function Header({ q, onQ, sort, onSort, updated }: Props) {
   return (
     <header className="flex shrink-0 flex-wrap items-center gap-2 border-b px-4 py-2 md:h-14 md:gap-3 md:py-0">
       <h1 className="text-base font-semibold">HN triage</h1>
+      <a href="#diagrams" className="text-sm text-muted-foreground hover:text-foreground">How it works</a>
       <div className="flex-1" />
       <Input type="search" placeholder="Search stories…" aria-label="Search stories" value={q} onChange={(e) => onQ(e.target.value)}
         className="order-last basis-full md:order-none md:w-64 md:basis-auto" />
