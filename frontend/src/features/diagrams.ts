@@ -21,15 +21,15 @@ export const DIAGRAMS = [
     title: 'LLM decision logic',
     note: 'What service/llm.py does with each story: classify, retry, gate on confidence, extract by category.',
     code: `flowchart TD
-    A[enriched story] --> B[classify: category + confidence]
-    B -->|invalid JSON, retry up to 3x<br/>with the error fed back| B
+    A[enriched story] --> B["classify: category + confidence<br/>(bad output: retry up to 3x,<br/>error fed back to the model)"]
     B -->|3 failures| F[status: fallback]
-    B -->|confidence below 0.6| N[status: needs_review<br/>extraction skipped]
-    B -->|confidence OK| X{category}
+    B -->|valid| G{"confidence<br/>at least 0.6?"}
+    G -->|no| N[status: needs_review<br/>extraction skipped]
+    G -->|yes| X{category}
     X -->|security| X1[affected product + severity]
     X -->|ai_ml| X2[model or tool]
     X -->|other categories| X3[main subject]
-    X1 --> V[validate, retry on bad output]
+    X1 --> V["validate<br/>(bad output: retry up to 3x)"]
     X2 --> V
     X3 --> V
     V -->|valid| OK[status: ok]
