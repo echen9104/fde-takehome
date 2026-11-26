@@ -110,7 +110,14 @@ Sources:
 2. [Redpanda Connect: Message Delivery Semantics](https://docs.redpanda.com/connect/guides/delivery_semantics/)
 3. [Redpanda Connect: sql_insert output](https://docs.redpanda.com/redpanda-connect/components/outputs/sql_insert/)
 
-#### TODO: second tradeoff
+#### One classification call, or a multi-step loop
+
+My build uses a multi-step loop. It does 2 calls: the first one classifies the category and the second one extracts details for the specific category because there are different fields to extract for different categories. To ask for the different fields of the categories, you would have to write many guidelines and rules in the prompt for when to extract which fields and when. This can be done deterministically with business logic. Since we're using a small model that's 1.5B, a focused prompt for a smaller model gives it a better chance of getting the JSON right (1, 2, 3). The confidence gate rarely fires, but if the first answer is low confidence, then we get a status of "needs review" and it skips the second call. For each story, a call happens 1 or 2 times, and the retry makes it so up to 6 calls per story are run. I would choose the single prompt if there was a fixed set of fields to extract for each story, if the model was larger, and if, for some reason, billing was by request and not by tokens.
+
+Sources:
+1. [Claude Docs: Chain complex prompts for stronger performance](https://docs.claude.com/en/docs/build-with-claude/prompt-engineering/chain-prompts)
+2. [Anthropic: Building effective AI agents](https://www.anthropic.com/engineering/building-effective-agents)
+3. [Ollama: Structured Outputs](https://docs.ollama.com/capabilities/structured-outputs)
 
 ### Surprises and production risks
 
