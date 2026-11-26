@@ -121,7 +121,7 @@ Sources:
 
 ### Surprises and production risks
 
-The first thing that surprised me was that almost all stories got a confidence score of 0.9 or higher because there is no calibration to indicate which categorizations deserved 0.5 or 0.9. There was also the scenario of running into blocked pages that could not have the story fetched so classifications ran based on title only could lead to a weaker guess. Throughput would fail first in production because the worker handles 1 story at a time. Connect pulls up to 25 stories every 30 seconds so if those stories aren't finished running they would pile up in the enriched topic. Older stories would be displayed to users while the system is still catching up. With restarts, the dedupe memory would be empty but we can still guarantee idempotency with the upserts. But the worker would re-run the model on stories that it already processed.
+The first thing that surprised me was that almost all stories got a confidence score of 0.9 or higher because there is no calibration to indicate which categorizations deserved 0.5 or 0.9. There was also the scenario of running into blocked pages that could not have the story fetched so classifications ran based on title only could lead to a weaker guess. Throughput would fail first in production because the worker handles 1 story at a time. Connect pulls up to 25 stories every 30 seconds so if those stories aren't finished running they would pile up in the enriched topic. Older stories would be displayed to users while the system is still catching up. With restarts, the dedupe memory would be empty and the worker would re-run the model on stories that it already processed. However, we can still guarantee idempotency with the upserts.
 
 ### Why this matters
 
