@@ -101,7 +101,16 @@ flowchart LR
 
 ### Tradeoffs
 
-TODO
+#### Connect writes to the sink, or your service writes to the sink
+
+My build writes to the sink itself and commits the offset to Redpanda after saving so a crash leads to reprocessing, not data loss. The work pipeline would be simpler. Since the data we're dealing with is low in volume, a database outage would block the AI work from processing but remediation doesn't take long. There's also an upsert in service/app.py that makes the reprocessing idempotent (1, 2).  I'd use Connect to write to the sink in the scenario where there was more than one data storage destination and the scale of the data was high volume (3). After an outage, Connect would pick back up where its last committed offset is in that topic. 
+
+Sources:
+1. [Redpanda: Consumer Offsets](https://docs.redpanda.com/current/develop/consume-data/consumer-offsets/)
+2. [Redpanda Connect: Message Delivery Semantics](https://docs.redpanda.com/connect/guides/delivery_semantics/)
+3. [Redpanda Connect: sql_insert output](https://docs.redpanda.com/redpanda-connect/components/outputs/sql_insert/)
+
+#### TODO: second tradeoff
 
 ### Surprises and production risks
 
