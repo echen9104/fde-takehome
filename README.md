@@ -99,4 +99,14 @@ flowchart LR
 
 ## Write-up
 
-TODO (write this yourself, without AI, per the exercise): Tradeoffs, Surprises and production risks, Why this matters.
+### Tradeoffs
+
+TODO
+
+### Surprises and production risks
+
+TODO
+
+### Why this matters
+
+A security analyst could use this to prioritize risks for their software by quickly scanning how critical known vulnerabilities are. If the system rated a critical vulnerability as medium/ low risk or the system was unavailable, then that extra time it takes to get to addressing the vulnerability would put their production software at risk of exploitation. Hacker News is the test data set but a better source for a real production system could be the National Vulnerability Database.
